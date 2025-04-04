@@ -5,7 +5,6 @@ import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import ThumbDownIcon from '@mui/icons-material/ThumbDown';
-import axios from 'axios';
 
 interface Post {
   id: number;
@@ -25,6 +24,8 @@ interface ApiResponse {
   posts: Post[];
 }
 
+type SortOption = 'newest' | 'oldest' | 'most-likes' | 'least-likes' | 'title-asc' | 'title-desc';
+
 function Post() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -32,34 +33,34 @@ function Post() {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
-  const [sortOption, setSortOption] = useState<string>('');
+  const [sortOption, setSortOption] = useState<SortOption>('newest');
   const [minLikes, setMinLikes] = useState<string>('');
   const [maxLikes, setMaxLikes] = useState<string>('');
 
   useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const response = await axios.get<ApiResponse>('https://dummyjson.com/posts');
+    fetch('https://dummyjson.com/posts')
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error('Erro ao carregar a API');
+        }
+        return await res.json() as ApiResponse;
+      })
+      .then(data => {
         setTimeout(() => {
-          setPosts(response.data.posts || []);
+          setPosts(data.posts || []);
           setLoading(false);
         }, 1000);
-      } catch (err) {
-        const error = err as Error;
-        setError(error.message);
+      })
+      .catch((err: Error) => {
+        setError(err.message);
         setLoading(false);
-      }
-    };
-
-    fetchPosts();
+      });
   }, []);
 
   const allCategories = useMemo(() => {
     const categories = new Set<string>();
     posts.forEach(post => {
-      if (post.tags) {
-        post.tags.forEach(tag => categories.add(tag));
-      }
+      post.tags?.forEach(tag => categories.add(tag));
     });
     return Array.from(categories);
   }, [posts]);
@@ -67,12 +68,14 @@ function Post() {
   const allUsers = useMemo(() => {
     const users = new Set<number>();
     posts.forEach(post => {
-      if (post.userId) {
-        users.add(post.userId);
-      }
+      users.add(post.userId);
     });
     return Array.from(users).sort((a, b) => a - b);
   }, [posts]);
+
+  const getLikes = (post: Post): number => {
+    return post.reactions?.likes || post.likes || 0;
+  };
 
   const filteredPosts = useMemo(() => {
     let result = [...posts];
@@ -87,7 +90,7 @@ function Post() {
     
     if (selectedCategories.length > 0) {
       result = result.filter(post => 
-        post.tags && post.tags.some(tag => selectedCategories.includes(tag))
+        post.tags?.some(tag => selectedCategories.includes(tag))
       );
     }
     
@@ -98,33 +101,46 @@ function Post() {
     }
     
     if (minLikes) {
-      const min = parseInt(minLikes);
+      const min = parseInt(minLikes) || 0;
       result = result.filter(post => 
-        (post.reactions?.likes || post.likes || 0) >= min
+        getLikes(post) >= min
       );
     }
     
     if (maxLikes) {
-      const max = parseInt(maxLikes);
+      const max = parseInt(maxLikes) || Infinity;
       result = result.filter(post => 
-        (post.reactions?.likes || post.likes || 0) <= max
+        getLikes(post) <= max
       );
     }
     
     switch (sortOption) {
-      case 'newest': result.sort((a, b) => b.id - a.id); break;
-      case 'oldest': result.sort((a, b) => a.id - b.id); break;
-      case 'most-likes': result.sort((a, b) => (b.reactions?.likes || b.likes || 0) - (a.reactions?.likes || a.likes || 0)); break;
-      case 'least-likes': result.sort((a, b) => (a.reactions?.likes || a.likes || 0) - (b.reactions?.likes || b.likes || 0)); break;
-      case 'title-asc': result.sort((a, b) => a.title.localeCompare(b.title)); break;
-      case 'title-desc': result.sort((a, b) => b.title.localeCompare(a.title)); break;
-      default: break;
+      case 'newest': 
+        result.sort((a, b) => b.id - a.id); 
+        break;
+      case 'oldest': 
+        result.sort((a, b) => a.id - b.id); 
+        break;
+      case 'most-likes': 
+        result.sort((a, b) => getLikes(b) - getLikes(a)); 
+        break;
+      case 'least-likes': 
+        result.sort((a, b) => getLikes(a) - getLikes(b)); 
+        break;
+      case 'title-asc': 
+        result.sort((a, b) => a.title.localeCompare(b.title)); 
+        break;
+      case 'title-desc': 
+        result.sort((a, b) => b.title.localeCompare(a.title)); 
+        break;
+      default: 
+        break;
     }
     
     return result;
   }, [posts, searchTerm, selectedCategories, selectedUsers, sortOption, minLikes, maxLikes]);
 
-  const sortOptionsMap: Record<string, string> = {
+  const sortOptionsMap: Record<SortOption, string> = {
     'newest': 'Mais recentes',
     'oldest': 'Mais antigos',
     'most-likes': 'Mais curtidas',
@@ -142,7 +158,7 @@ function Post() {
   };
 
   const handleSortChange = (event: { target: { value: unknown } }) => {
-    setSortOption(event.target.value as string);
+    setSortOption(event.target.value as SortOption);
   };
 
   if (error) return <div className="container" id="error-container">Error: {error}</div>;
@@ -202,7 +218,7 @@ function Post() {
                   <div className="flex">
                     <div className="cards-post-likes" id={`post-likes-${post.id}`}>
                       <ThumbUpIcon fontSize="small" />
-                      <span>{post.reactions?.likes || post.likes || 0}</span>
+                      <span>{getLikes(post)}</span>
                     </div>
                     <div className="cards-post-deslikes" id={`post-dislikes-${post.id}`}>
                       <ThumbDownIcon fontSize="small" />
