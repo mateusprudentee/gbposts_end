@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import App from './App';
-import Api from "./api/api.tsx"; 
+import Api from "./Api/api.tsx"; 
 
 function Routes2() {
   return (
