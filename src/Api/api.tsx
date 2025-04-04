@@ -1,39 +1,44 @@
 import { useState, useEffect } from 'react';
 import axios, { AxiosError } from 'axios';
 
-interface Reactions {
+interface PostReactions {
   likes: number;
   dislikes: number;
 }
+
 interface Post {
   id: number;
   title: string;
   body: string;
   userId: number;
   tags: string[];
-  reactions: Reactions;
+  reactions: PostReactions;
 }
+
 interface ApiResponse {
   posts: Post[];
+  total: number;
+  skip: number;
+  limit: number;
 }
 
 const Api = () => {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const response = await axios.get<ApiResponse>('https://dummyjson.com/posts');
-        setPosts(response.data.posts);
-      } catch (err) {
+        const { data } = await axios.get<ApiResponse>('https://dummyjson.com/posts');
+        setPosts(data.posts);
+      } catch (err: unknown) {
         if (err instanceof AxiosError) {
-          setError(err.message);
+          setError(err.response?.data?.message || err.message);
         } else if (err instanceof Error) {
           setError(err.message);
         } else {
-          setError('Ocorreu um erro desconhecido');
+          setError('An unknown error occurred');
         }
       } finally {
         setLoading(false);
@@ -43,8 +48,8 @@ const Api = () => {
     fetchPosts();
   }, []);
 
-  if (loading) return <div>Carregando posts...</div>;
-  if (error) return <div>Erro: {error}</div>;
+  if (loading) return <div>Loading posts...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <div>
@@ -55,9 +60,8 @@ const Api = () => {
             <h2>{post.title}</h2>
             <p>{post.body}</p>
             <div>Tags: {post.tags.join(', ')}</div>
-            <div>
-              Likes: {post.reactions.likes} | Dislikes: {post.reactions.dislikes}
-            </div>
+            <div>Likes: {post.reactions.likes}</div>
+            <div>Dislikes: {post.reactions.dislikes}</div>
           </li>
         ))}
       </ul>
