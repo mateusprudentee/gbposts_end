@@ -1,10 +1,19 @@
-A post management application with filters and search functionality.
+Tecnologias Utilizadas
+- React
+- Material-UI
 
-Technologies Used
-React
-Material-UI
-CSS
+Clone o repositório do projeto
 
-Clone the repository.
-Install dependencies: npm install
-Start the app: npm start
+- cd /gbposts_end_main
+- npm install
+- npm run dev
+- npm run build
+
+Funcionalidades (filtros)
+- Min de Likes
+- Max de Likes
+- Categoria
+- Usuários
+- Ordenação de post
+
+Desenvolvido de 02/04/2025 a 04/04/2025
