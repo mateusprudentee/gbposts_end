@@ -5,40 +5,57 @@ import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import ThumbDownIcon from '@mui/icons-material/ThumbDown';
+import axios from 'axios';
+
+interface Post {
+  id: number;
+  title: string;
+  body: string;
+  userId: number;
+  tags: string[];
+  reactions?: {
+    likes: number;
+    dislikes: number;
+  };
+  likes?: number;
+  dislikes?: number;
+}
+
+interface ApiResponse {
+  posts: Post[];
+}
 
 function Post() {
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState([]);
-  const [selectedUsers, setSelectedUsers] = useState([]);
-  const [sortOption, setSortOption] = useState('');
-  const [minLikes, setMinLikes] = useState('');
-  const [maxLikes, setMaxLikes] = useState('');
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
+  const [sortOption, setSortOption] = useState<string>('');
+  const [minLikes, setMinLikes] = useState<string>('');
+  const [maxLikes, setMaxLikes] = useState<string>('');
 
   useEffect(() => {
-    fetch('https://dummyjson.com/posts')
-      .then(res => {
-        if (!res.ok) {
-          throw new Error('Erro ao carregar a API');
-        }
-        return res.json();
-      })
-      .then(data => {
+    const fetchPosts = async () => {
+      try {
+        const response = await axios.get<ApiResponse>('https://dummyjson.com/posts');
         setTimeout(() => {
-          setPosts(data.posts || []);
+          setPosts(response.data.posts || []);
           setLoading(false);
         }, 1000);
-      })
-      .catch(err => {
-        setError(err.message);
+      } catch (err) {
+        const error = err as Error;
+        setError(error.message);
         setLoading(false);
-      });
+      }
+    };
+
+    fetchPosts();
   }, []);
 
   const allCategories = useMemo(() => {
-    const categories = new Set();
+    const categories = new Set<string>();
     posts.forEach(post => {
       if (post.tags) {
         post.tags.forEach(tag => categories.add(tag));
@@ -48,7 +65,7 @@ function Post() {
   }, [posts]);
 
   const allUsers = useMemo(() => {
-    const users = new Set();
+    const users = new Set<number>();
     posts.forEach(post => {
       if (post.userId) {
         users.add(post.userId);
@@ -107,13 +124,25 @@ function Post() {
     return result;
   }, [posts, searchTerm, selectedCategories, selectedUsers, sortOption, minLikes, maxLikes]);
 
-  const sortOptionsMap = {
+  const sortOptionsMap: Record<string, string> = {
     'newest': 'Mais recentes',
     'oldest': 'Mais antigos',
     'most-likes': 'Mais curtidas',
     'least-likes': 'Menos curtidas',
     'title-asc': 'Título (A-Z)',
     'title-desc': 'Título (Z-A)'
+  };
+
+  const handleCategoriesChange = (event: { target: { value: unknown } }) => {
+    setSelectedCategories(event.target.value as string[]);
+  };
+
+  const handleUsersChange = (event: { target: { value: unknown } }) => {
+    setSelectedUsers(event.target.value as number[]);
+  };
+
+  const handleSortChange = (event: { target: { value: unknown } }) => {
+    setSortOption(event.target.value as string);
   };
 
   if (error) return <div className="container" id="error-container">Error: {error}</div>;
@@ -233,7 +262,7 @@ function Post() {
                 labelId="categories-label"
                 multiple
                 value={selectedCategories}
-                onChange={(e) => setSelectedCategories(e.target.value)}
+                onChange={handleCategoriesChange}
                 input={<OutlinedInput label="Selecione as categorias" />}
                 renderValue={(selected) => selected.length > 0 ? selected.join(', ') : "Selecione as categorias"}
               >
@@ -252,7 +281,7 @@ function Post() {
                 labelId="users-label"
                 multiple
                 value={selectedUsers}
-                onChange={(e) => setSelectedUsers(e.target.value)}
+                onChange={handleUsersChange}
                 input={<OutlinedInput label="Selecione os usuários" />}
                 renderValue={(selected) => selected.length > 0 ? selected.map(u => `Usuário ${u}`).join(', ') : "Selecione os usuários"}
               >
@@ -289,7 +318,7 @@ function Post() {
                 labelId="sort"
                 value={sortOption}
                 label="Ordene os posts"
-                onChange={(e) => setSortOption(e.target.value)}
+                onChange={handleSortChange}
                 renderValue={(selected) => selected ? sortOptionsMap[selected] : "Ordene os posts"}
               >
                 <MenuItem value="newest">Mais recentes</MenuItem>
