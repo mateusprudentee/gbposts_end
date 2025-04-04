@@ -105,23 +105,20 @@
     border: 1px solid rgba(218, 216, 216, 0.281);
 }
 
-/* Ajustes para os inputs */
 .MuiFormControl-root {
-    margin-top: 16px !important;
-    margin-bottom: 8px !important;
+    margin-top: 16px;
+    margin-bottom: 8px;
 }
 
 .MuiInputLabel-root {
-    background-color: white !important;
-    padding: 0 4px !important;
-    left: -4px !important;
+    background-color: white;
+    padding: 0 4px;
+    left: -4px;
 }
 
 .MuiOutlinedInput-root {
-    margin-top: 0 !important;
+    margin-top: 0;
 }
-
-/* Ajustes para responsividade */
 @media (max-width: 992px) {
     #content-wrapper {
         flex-direction: column-reverse;
@@ -163,7 +160,6 @@
         gap: 15px;
     }
 }
-
 @media (max-width: 480px) {
     .container {
         padding: 0.5em;
